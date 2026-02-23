@@ -97,29 +97,53 @@ class DateFormatter:
         return None
 
     @staticmethod
-    def end_month(date_str: str) -> str | TypeError:
+    def end_month(date_str: str) -> str:
+        """
+        Returns the last day of the month for a given date string.
+
+        Args:
+            date_str: A string representing a date.
+
+        Returns:
+            str: Date string for the last day of the month in YYYY-MM-DD format.
+
+        Raises:
+            TypeError: If the date format is invalid.
+        """
         from .date_parser import DateParser as dp
-        if dp.is_date(date_str):
-            days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-            if dp.month(date_str) == (1 or 3 or 5 or 7 or 8 or 10 or 12):
-                return f"{dp.year(date_str)}-{dp.month(date_str):02}-{days_in_month[dp.month(date_str) - 1]}"
-            elif dp.month(date_str) == 2:
-                if dp.year(date_str) % 4 == 0 and (dp.year(date_str) % 100 != 0 or dp.year(date_str) % 400 == 0):
-                    return f"{dp.year(date_str)}-{dp.month(date_str)}-{29}"  # Leap year
-                else:
-                    return f"{dp.year(date_str)}-{dp.month(date_str)}-{days_in_month[dp.month(date_str) - 1]}"
-            else:
-                return f"{dp.year(date_str)}-{dp.month(date_str)}-{days_in_month[dp.month(date_str) - 1]}"
-        else:
-            return TypeError("Invalid date format")
+
+        if not dp.is_date(date_str):
+            raise TypeError("Invalid date format")
+
+        year = int(dp.year(date_str))
+        month = int(dp.month(date_str))
+
+        # Use calendar module to get number of days in month
+        last_day = calendar.monthrange(year, month)[1]
+
+        return f"{year}-{month:02}-{last_day:02}"
 
     @staticmethod
-    def start_month(date_str: str) -> str | TypeError:
+    def start_month(date_str: str) -> str:
+        """
+        Returns the first day of the month for a given date string.
+
+        Args:
+            date_str: A string representing a date.
+
+        Returns:
+            str: Date string in YYYY-MM-DD format.
+
+        Raises:
+            TypeError: If the date format is invalid.
+        """
         from .date_parser import DateParser as dp
-        if dp.is_date(date_str):
-            return DateFormatter.date_trunc(date_str, "month")
-        else:
-            return TypeError("Invalid date format")
+        
+        if not dp.is_date(date_str):
+            raise TypeError("Invalid date format")
+
+        # Delegate to date_trunc for month
+        return DateFormatter.date_trunc(date_str, "month")
 
     @staticmethod
     def date_format(date_str: str, d_format: str = 'dd') -> str | TypeError:
@@ -173,4 +197,5 @@ class DateFormatter:
                     return f"{dp.date_part(date_str, 'day'):02}-{dp.date_part(date_str, 'month'):02}-{yy[-2:]}"
         else:
             return TypeError("Invalid date format")
+
 
