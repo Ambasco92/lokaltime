@@ -4,59 +4,97 @@ import re
 class DateFormatter:
 
     @staticmethod
-    def date_name(date_str: str, part: str = 'month') -> str | TypeError | None:
+    def date_name(date_str: str, part: str = 'month') -> str:
+        """
+            Returns a string representation of a specific part of a date.
+
+            Args:
+                date_str: A string representing a date.
+                part: One of ['day', 'week_day', 'month', 'year'].
+
+            Returns:
+                str: The requested part of the date.
+
+            Raises:
+                TypeError: If the date is invalid or the part is unknown.
+        """
         from .date_parser import DateParser as dp
-        if dp.is_date(date_str):
-            date = datetime.date(int(dp.year(date_str)), int(dp.month(date_str)), int(dp.day(date_str)))
-            match part:
-                case 'day':
-                    return f"{dp.day(date_str):02}"
-                case 'week_day':
-                    return date.strftime("%A")
-                case 'month':
-                    return f"{date.strftime("%B"):02}"
-                case 'year':
-                    return f"{date.strftime("%Y")}"
-                case _:
-                    return TypeError(
-                        "Invalid argument for date_name, part: expects ['day', 'month', 'year', 'week_day']")
-        else:
-            return TypeError('Invalid date format')
+
+        if not dp.is_date(date_str):
+            raise TypeError('Invalid date format')
+
+        dt = date(
+            year = int(dp.year(date_str)),
+            month = int(dp.month(date_str)),
+            day = int(dp.day(date_str))
+        )
+
+        mapping = {
+            'day': f"{dp.day(date_str):02}",
+            'week_day': dt.strftime("%A"),
+            'month': f"{dt.strftime("%B"):02}",
+            'year': dt.strftime("%Y")
+        }
+
+        try:
+            return mapping[part]
+        except KeyError:
+            raise TypeError("Invalid argument for date_name, part: expects ['day', 'month', 'year', 'week_day']")
 
     @staticmethod
-    def date_trunc(date_str: str, arg: str = 'year') -> str | TypeError | None:
+    def date_trunc(date_str: str, arg: str = 'year') -> str | None:
+        """
+            Truncate a date string to the start of the day, month, or year.
+
+            Args:
+                date_str: A string representing a date.
+                arg: One of ['day', 'month', 'year'].
+
+            Returns:
+                str: The truncated date string.
+                None: If input format is invalid.
+
+            Raises:
+                TypeError: If `arg` is not 'day', 'month', or 'year'.
+        """
         from .date_parser import DateParser as dp
+
+        if not arg in ['day', 'month', 'year']:
+            raise TypeError("Invalid argument for date_trunc, arg: expects ['day', 'month', 'year']")
+
+        # If valid date, parse into date object
         if dp.is_date(date_str):
-            if arg == 'day':
-                return date_str
+            dt = date(
+                year=int(dp.year(date_str)),
+                month=int(dp.month(date_str)),
+                day=int(dp.day(date_str))
+            )
+            if arg == 'year':
+                return f"{dt.year}-01-01"
             elif arg == 'month':
-                pattern = r'^(\d{4})-?(\d{2})?-?(\d{2})?$'
-                match = re.fullmatch(pattern, date_str)
-                if not match:
-                    return None
+                return f"{dt.year}-{dt.month:02}-01"
+            elif arg == 'day':
+                return f"{dt.year}-{dt.month:02}-{dt.day:02}"
 
-                yy, mm, dd = match.groups()
+        # If invalid date, try partial parsing using regex
+        pattern = r'^(\d{4})-?(\d{2})?-?(\d{2})?$'
+        match = re.fullmatch(pattern, date_str)
+        if not match:
+            return None
 
-                if mm is None and dd is None:
-                    return f'{yy}'
-                else:
-                    return f'{yy}-{mm}-01'
-            elif arg == 'year':
-                pattern = r'^(\d{4})-?(\d{2})?-?(\d{2})?$'
-                match = re.fullmatch(pattern, date_str)
-                if not match:
-                    return None
+        yy, mm, dd = match.groups()
 
-                yy, mm, dd = match.groups()
-
-                if mm is None and dd is None:
-                    return f'{yy}'
-                else:
-                    return f'{yy}-01-01'
-            else:
-                return TypeError("Invalid argument for date_trunc, arg: expects ['day', 'month', 'year']")
-        else:
-            raise TypeError('Invalid date format')
+        if arg == 'year':
+            return f"{yy}-01-01"
+        elif arg == 'month':
+            if mm is None:
+                return yy
+            return f"{yy}-{mm}-01"
+        elif arg == 'day':
+            if mm is None or dd is None:
+                return date_str  # fallback to original if incomplete
+            return f"{yy}-{mm}-{dd}"
+        return None
 
     @staticmethod
     def end_month(date_str: str) -> str | TypeError:
@@ -135,3 +173,4 @@ class DateFormatter:
                     return f"{dp.date_part(date_str, 'day'):02}-{dp.date_part(date_str, 'month'):02}-{yy[-2:]}"
         else:
             return TypeError("Invalid date format")
+
